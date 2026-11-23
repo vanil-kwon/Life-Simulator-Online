@@ -1,4 +1,8 @@
 import Phaser from 'phaser';
+import {
+  WORLD_W, WORLD_H, DOOR_WIDTH, WALL_THICKNESS,
+  TREE_COLLIDER_SIZE, LAMP_COLLIDER_SIZE
+} from './constants.js';
 
 const TILE = 32;
 const COLORS = {
@@ -8,13 +12,12 @@ const COLORS = {
 
 export function drawCity(scene) {
   const g = scene.add.graphics();
-  const width = 1600, height = 1200;
-  g.fillStyle(COLORS.grass);
-  g.fillRect(0, 0, width, height);
 
-  // Текстура травы
-  for (let y = 0; y < height; y += TILE) {
-    for (let x = 0; x < width; x += TILE) {
+  // Трава
+  g.fillStyle(COLORS.grass);
+  g.fillRect(0, 0, WORLD_W, WORLD_H);
+  for (let y = 0; y < WORLD_H; y += TILE) {
+    for (let x = 0; x < WORLD_W; x += TILE) {
       if (((x / TILE) * 7 + (y / TILE) * 11) % 5 === 0) {
         g.fillStyle(COLORS.grass2, 0.45);
         g.fillRect(x + 5, y + 7, 5, 4);
@@ -22,20 +25,20 @@ export function drawCity(scene) {
     }
   }
 
-  // Две пересекающиеся улицы
+  // Дороги
   g.fillStyle(COLORS.sidewalk);
-  g.fillRect(0, 360, width, 112);
-  g.fillRect(650, 0, 112, height);
+  g.fillRect(0, 360, WORLD_W, 112);
+  g.fillRect(650, 0, 112, WORLD_H);
   g.fillStyle(COLORS.road);
-  g.fillRect(0, 376, width, 80);
-  g.fillRect(666, 0, 80, height);
+  g.fillRect(0, 376, WORLD_W, 80);
+  g.fillRect(666, 0, 80, WORLD_H);
 
-  // Дорожная разметка
+  // Разметка
   g.lineStyle(2, COLORS.roadLine, 0.85);
-  for (let x = 20; x < width; x += 48) {
+  for (let x = 20; x < WORLD_W; x += 48) {
     g.beginPath(); g.moveTo(x, 416); g.lineTo(x + 23, 416); g.strokePath();
   }
-  for (let y = 20; y < height; y += 48) {
+  for (let y = 20; y < WORLD_H; y += 48) {
     g.beginPath(); g.moveTo(706, y); g.lineTo(706, y + 23); g.strokePath();
   }
 
@@ -46,12 +49,13 @@ export function drawCity(scene) {
     g.fillRect(630 + i * 18, 460, 9, 12);
   }
 
-  // Парки
-  drawPark(g, 80, 80, 380, 220);
-  drawPark(g, 920, 80, 300, 220);
-  drawPark(g, 900, 760, 400, 300);
+  // Парки — теперь собирают деревья в массив
+  const trees = [];
+  drawPark(g, 80, 80, 380, 220, trees);
+  drawPark(g, 920, 80, 300, 220, trees);
+  drawPark(g, 900, 760, 400, 300, trees);
 
-  // Здания и интерактивные зоны
+  // Здания (те же координаты, что были — сохранён визуал)
   const buildings = [
     { x: 80, y: 540, w: 220, h: 160, color: 0x9b7660, name: 'МАГАЗИН', type: 'shop' },
     { x: 360, y: 540, w: 210, h: 190, color: 0x788d9b, name: 'АВТОСАЛОН', type: 'dealer' },
@@ -78,27 +82,72 @@ export function drawCity(scene) {
     }).setOrigin(0.5);
   }
 
-  // Декоративные фонари
+  // Фонари — собираем координаты
+  const lamps = [];
   for (const [x, y] of [[590,340],[790,340],[590,490],[790,490],[310,340],[1030,490]]) {
+    lamps.push({ x, y });
     g.fillStyle(0x26313a); g.fillCircle(x, y, 5);
     g.fillStyle(0xf5df9b, 0.8); g.fillCircle(x, y, 2);
   }
 
   scene.cityBuildings = buildings;
+  scene.trees = trees;
+  scene.lamps = lamps;
+
+  buildWorldColliders(scene, buildings, trees, lamps);
+
   scene.add.text(800, 22, 'PIXEL CITY • ЦЕНТРАЛЬНЫЙ РАЙОН', {
     fontSize: '13px', color: '#e8f0d8', backgroundColor: '#263b2dcc',
     padding: {x: 8, y: 5}
   }).setOrigin(0.5, 0);
 }
 
-function drawPark(g, x, y, w, h) {
+function drawPark(g, x, y, w, h, treesOut) {
   g.fillStyle(0x47734d);
   g.fillRoundedRect(x, y, w, h, 12);
   for (let i = 0; i < 12; i++) {
     const tx = x + 25 + (i * 71) % Math.max(50, w - 50);
     const ty = y + 25 + (i * 43) % Math.max(50, h - 50);
+    treesOut.push({ x: tx, y: ty });
     g.fillStyle(0x31563b); g.fillCircle(tx + 3, ty + 5, 15);
     g.fillStyle(i % 2 ? 0x6b9a5b : 0x78a864); g.fillCircle(tx, ty, 14);
     g.fillStyle(0x9dbb77); g.fillRect(tx - 3, ty - 4, 6, 3);
   }
+}
+
+function buildWorldColliders(scene, buildings, trees, lamps) {
+  const walls = scene.physics.add.staticGroup();
+
+  const addBox = (x, y, w, h) => {
+    if (w <= 0 || h <= 0) return;
+    const rect = scene.add.rectangle(x + w / 2, y + h / 2, w, h, 0x000000, 0);
+    walls.add(rect);
+    rect.body.updateFromGameObject();
+  };
+
+  for (const b of buildings) {
+    // Верх
+    addBox(b.x, b.y, b.w, WALL_THICKNESS);
+    // Лево
+    addBox(b.x, b.y + WALL_THICKNESS, WALL_THICKNESS, b.h - WALL_THICKNESS);
+    // Право
+    addBox(b.x + b.w - WALL_THICKNESS, b.y + WALL_THICKNESS, WALL_THICKNESS, b.h - WALL_THICKNESS);
+    // Низ с проёмом-дверью по центру
+    const doorLeft = b.x + (b.w - DOOR_WIDTH) / 2;
+    const doorRight = doorLeft + DOOR_WIDTH;
+    addBox(b.x, b.y + b.h - WALL_THICKNESS, doorLeft - b.x, WALL_THICKNESS);
+    addBox(doorRight, b.y + b.h - WALL_THICKNESS, b.x + b.w - doorRight, WALL_THICKNESS);
+  }
+
+  for (const t of trees) {
+    const s = TREE_COLLIDER_SIZE;
+    addBox(t.x - s / 2, t.y - s / 2, s, s);
+  }
+
+  for (const l of lamps) {
+    const s = LAMP_COLLIDER_SIZE;
+    addBox(l.x - s / 2, l.y - s / 2, s, s);
+  }
+
+  scene.worldWalls = walls;
 }
