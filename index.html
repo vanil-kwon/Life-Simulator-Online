@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#111923">
+  <meta name="description" content="Life Simulator — пиксельный симулятор городской жизни.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <title>Life Simulator</title>
+</head>
+<body>
+  <div id="app">
+    <div id="game"></div>
+    <div id="menu" class="screen">
+      <div class="menu-card">
+        <div class="eyebrow">PIXEL CITY • EARLY ACCESS</div>
+        <h1>LIFE <span>SIMULATOR</span></h1>
+        <p class="subtitle">ТВОЙ ГОРОД. ТВОЯ ЖИЗНЬ.</p>
+        <label class="field-label" for="player-name">Имя персонажа</label>
+        <input id="player-name" maxlength="16" autocomplete="nickname" placeholder="Например, Alex">
+        <div class="menu-actions">
+          <button id="offline-btn" class="primary">Играть офлайн</button>
+          <button id="online-btn" class="secondary">Онлайн <span class="soon">СКОРО</span></button>
+        </div>
+        <div id="menu-message" class="message">Офлайн-прогресс сохраняется на этом устройстве.</div>
+        <div class="menu-footer">Версия 0.1.0 · Демоверсия</div>
+      </div>
+    </div>
+    <div id="hud" class="hud hidden">
+      <div class="hud-top">
+        <div class="player-chip"><span class="status-dot"></span><span id="hud-name">Игрок</span></div>
+        <div class="stats">
+          <div class="stat"><small>ДЕНЬГИ</small><b id="hud-money">$1 000</b></div>
+          <div class="stat"><small>ДЕНЬ</small><b id="hud-day">1</b></div>
+        </div>
+        <button id="menu-btn" class="icon-btn" aria-label="Меню">Ⅱ</button>
+      </div>
+      <div id="toast" class="toast"></div>
+      <div class="hud-bottom">
+        <div class="hint" id="control-hint">WASD / стрелки — движение · E — действие</div>
+        <div class="mobile-controls">
+          <div id="joystick" class="joystick"><div id="stick" class="stick"></div></div>
+          <div class="action-buttons">
+            <button id="interact-btn" class="action-btn">E<br><small>ДЕЙСТВИЕ</small></button>
+            <button id="car-btn" class="action-btn car-action">CAR<br><small>МАШИНА</small></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="pause-panel" class="screen hidden">
+      <div class="menu-card compact">
+        <div class="eyebrow">LIFE SIMULATOR</div>
+        <h2>ПАУЗА</h2>
+        <p class="subtitle">Прогресс сохраняется автоматически</p>
+        <button id="resume-btn" class="primary">Продолжить</button>
+        <button id="save-btn" class="secondary">Сохранить сейчас</button>
+        <button id="exit-btn" class="text-button">В главное меню</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
