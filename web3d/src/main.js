@@ -7,8 +7,10 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x9eb8c5);
 scene.fog=new THREE.Fog(0x9eb8c5,38,105);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,125);
+const isLowMemory = (navigator.deviceMemory || 4) <= 4;
+const isMobile = matchMedia('(pointer: coarse)').matches;
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'low-power',alpha:false});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.15));
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,isLowMemory?0.78:(isMobile?0.9:1.0)));
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=false;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -105,7 +107,7 @@ humanStatus.className='asset-status';
 humanStatus.textContent='Загрузка 3D-персонажа…';
 root.appendChild(humanStatus);
 const humanLoader=new GLTFLoader();
-humanLoader.load(
+if(!isLowMemory) humanLoader.load(
  'https://files.innerscene.com/library/idle-standing-sam-3d-person-animated-1f9f1217/4ca6054a9945f1c21da5/idle-standing-sam-3d-person-animated.glb',
  (gltf)=>{
    const human=gltf.scene;
@@ -131,6 +133,9 @@ humanLoader.load(
  (error)=>{console.warn('Human GLB could not be loaded; using fallback character.',error);humanStatus.textContent='Персонаж загружается позже · временная модель';setTimeout(()=>humanStatus.remove(),3500);}
 );
 
+else humanStatus.textContent='Лёгкая модель персонажа для плавной работы';
+if(isLowMemory) setTimeout(()=>humanStatus.remove(),2200);
+
 const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.55,3,6),mats.shirt);torso.position.y=1.18;body.add(torso);
 const head=new THREE.Mesh(new THREE.SphereGeometry(.23,8,6),mats.skin);head.position.y=1.85;body.add(head);
 const legs=[];
@@ -139,6 +144,7 @@ player.position.set(0,0,-12);
 const car=new THREE.Group();scene.add(car);car.position.set(3,.0,-7);
 box(car,'Car body',0,.62,0,1.9,.65,3.5,mats.car);box(car,'Car windows',0,1.08,-.2,1.55,.48,1.75,mats.glass);
 const carWheels=[];for(const x of [-.94,.94])for(const z of [-1.12,1.12]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.2,12),mat(0x202326));wheel.rotation.z=Math.PI/2;wheel.position.set(x,.35,z);car.add(wheel);carWheels.push(wheel);}
+flushStaticBatches();
 let yaw=0,pitch=.12,moveX=0,moveY=0,walking=0,energy=100,hunger=100,health=100,money=1250,driving=false;
 const stick=document.querySelector('#stick'),knob=document.querySelector('#knob');let movePointer=null,lastLook=null;
 stick.addEventListener('pointerdown',e=>{movePointer=e.pointerId;stick.setPointerCapture(e.pointerId);updateStick(e);});
@@ -175,11 +181,16 @@ actionButton.addEventListener('click',()=>{
 });
 function hud(){for(const [k,v] of Object.entries({health,energy,hunger})){document.getElementById(k).style.width=v+'%';document.getElementById(k+'-t').textContent=Math.round(v);}}
 const clock=new THREE.Clock();
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);
+let lastFrame=0,lastHud=0;
+function animate(now=0){
+ requestAnimationFrame(animate);
+ if(now-lastFrame<(isLowMemory?33.3:16.7)) return;
+ const dt=Math.min(clock.getDelta(),.04);lastFrame=now;
  const len=Math.hypot(moveX,moveY),moving=len>.08;
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const dir=forward.multiplyScalar(moveY).add(right.multiplyScalar(moveX));if(dir.lengthSq()>1)dir.normalize();
- player.traverse(o=>{if(o.userData.mixer)o.userData.mixer.update(dt);});
+ const humanModel=player.children.find(o=>o.userData.mixer);
+ if(humanModel) humanModel.userData.mixer.update(dt);
  if(moving){
   if(driving){
    car.position.addScaledVector(dir,dt*8.2);
@@ -198,7 +209,8 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const target=new THREE.Vector3(followed.position.x+Math.sin(yaw)*Math.cos(pitch)*(driving?7:5),followed.position.y+(driving?3.6:2.7)+Math.sin(pitch)*3,followed.position.z+Math.cos(yaw)*Math.cos(pitch)*(driving?7:5));
  camera.position.lerp(target,1-Math.exp(-dt*7));camera.lookAt(followed.position.x,driving?1.05:1.25,followed.position.z);
  const nearby=driving?null:nearestService();actionButton.textContent=driving?'ВЫЙТИ ИЗ АВТО':nearby?.kind==='shop'?'КУПИТЬ ЕДУ':nearby?.kind==='work'?'РАБОТАТЬ':'ВЗАИМОДЕЙСТВИЕ';
- hud();renderer.render(scene,camera);
+ if(now-lastHud>250){hud();lastHud=now;}
+ renderer.render(scene,camera);
 }
 animate();
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.35));});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,isLowMemory?0.78:(isMobile?0.9:1.0)));});
