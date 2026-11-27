@@ -390,6 +390,39 @@ button {
   will-change: transform;
 }
 
+/* ========== DRIVING CONTROLS ========== */
+.drive-controls {
+  display: none;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+.hud.driving .drive-controls { display: flex; }
+.hud.driving #joystick {
+  border-color: rgba(116, 214, 160, 0.55);
+  background: radial-gradient(circle, rgba(116, 214, 160, 0.16), rgba(12, 21, 30, 0.72));
+}
+.pedal {
+  width: 66px;
+  height: 94px;
+  border-radius: 17px;
+  border: 1px solid rgba(255,255,255,.25);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: auto;
+  touch-action: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 5px 16px rgba(0,0,0,.32);
+}
+.pedal span { font-size: 9px; font-weight: 800; letter-spacing: .5px; }
+.pedal b { font-size: 24px; line-height: 1; }
+.gas-pedal { background: linear-gradient(180deg, #329b68, #17613f); border-color: rgba(123,224,167,.55); }
+.brake-pedal { height: 76px; background: linear-gradient(180deg, #b85b5b, #713333); border-color: rgba(255,150,150,.4); }
+.pedal.pressed { transform: translateY(3px) scale(.97); filter: brightness(1.25); box-shadow: inset 0 3px 8px rgba(0,0,0,.3); }
+
 /* ========== ACTION BUTTONS ========== */
 .action-buttons {
   display: flex;
@@ -493,6 +526,8 @@ button {
   .joystick { width: 104px; height: 104px; }
   .stick { width: 42px; height: 42px; left: calc(50% - 21px); top: calc(50% - 21px); }
   .action-btn { width: 60px; height: 60px; }
+  .pedal { width: 58px; height: 82px; }
+  .brake-pedal { height: 68px; }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
