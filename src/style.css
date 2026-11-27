@@ -398,6 +398,7 @@ button {
   pointer-events: none;
 }
 .hud.driving .drive-controls { display: flex; }
+.hud.driving #interact-btn { display: none; }
 .hud.driving #joystick {
   border-color: rgba(116, 214, 160, 0.55);
   background: radial-gradient(circle, rgba(116, 214, 160, 0.16), rgba(12, 21, 30, 0.72));
@@ -523,11 +524,13 @@ button {
   .stats { gap: 12px; padding: 6px 11px; }
   .stat { min-width: 56px; }
   .player-chip { max-width: 35%; padding: 0 10px; font-size: 11px; }
-  .joystick { width: 104px; height: 104px; }
-  .stick { width: 42px; height: 42px; left: calc(50% - 21px); top: calc(50% - 21px); }
-  .action-btn { width: 60px; height: 60px; }
-  .pedal { width: 58px; height: 82px; }
-  .brake-pedal { height: 68px; }
+  .joystick { width: 94px; height: 94px; }
+  .stick { width: 38px; height: 38px; left: calc(50% - 19px); top: calc(50% - 19px); }
+  .action-btn { width: 56px; height: 56px; }
+  .mobile-controls { gap: 9px; }
+  .action-buttons { gap: 6px; }
+  .pedal { width: 52px; height: 76px; }
+  .brake-pedal { height: 64px; }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
