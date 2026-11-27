@@ -1,0 +1,24 @@
+name: Check mobile 3D prototype
+
+on:
+  pull_request:
+    paths:
+      - "web3d/**"
+      - ".github/workflows/web3d-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-web3d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install mobile prototype dependencies
+        run: npm --prefix web3d install
+      - name: Build mobile prototype
+        run: npm --prefix web3d run build -- --base=/Life-Simulator-Online/3d/
