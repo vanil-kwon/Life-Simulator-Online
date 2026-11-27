@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#111a20">
+  <title>Life Simulator 3D</title>
+</head>
+<body>
+  <div id="game"></div>
+  <div class="topbar">
+    <div class="brand">LIFE <b>SIMULATOR</b><small>3D CITY · MOBILE PROTOTYPE</small></div>
+    <div class="money" id="money">$ 1 250</div>
+  </div>
+  <div class="needs" id="needs">
+    <div><span>❤ ЗДОРОВЬЕ</span><b id="health-t">100</b><i><em id="health"></em></i></div>
+    <div><span>⚡ ЭНЕРГИЯ</span><b id="energy-t">100</b><i><em id="energy"></em></i></div>
+    <div><span>🍔 СЫТОСТЬ</span><b id="hunger-t">100</b><i><em id="hunger"></em></i></div>
+  </div>
+  <div class="hint" id="hint">Исследуй город · Управление: слева движение, справа обзор</div>
+  <div class="controls">
+    <div class="stick" id="stick"><div class="knob" id="knob"></div></div>
+    <div class="look-label">ПРОВЕДИ ДЛЯ ОБЗОРА</div>
+  </div>
+  <button class="action" id="action">ВЗАИМОДЕЙСТВИЕ</button>
+  <div class="toast" id="toast"></div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
