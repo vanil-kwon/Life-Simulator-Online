@@ -184,8 +184,7 @@ export class CityScene extends Phaser.Scene {
         this.driveInput[inputName] = true;
         button.classList.add('pressed');
       };
-      const release = event => {
-        if (event && event.pointerId !== undefined && !button.hasPointerCapture?.(event.pointerId)) return;
+      const release = () => {
         this.driveInput[inputName] = false;
         button.classList.remove('pressed');
       };
