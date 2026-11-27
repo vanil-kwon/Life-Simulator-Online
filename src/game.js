@@ -143,6 +143,7 @@ export class CityScene extends Phaser.Scene {
   }
 
   cleanup() {
+    if (this.lifePanelCleanup) { this.lifePanelCleanup(); this.lifePanelCleanup = null; }
     if (this.toastTimer) { clearTimeout(this.toastTimer); this.toastTimer = null; }
     if (this.input && this.input.keyboard) {
       this.input.keyboard.off('keydown-E', this._onInteract);
@@ -324,12 +325,12 @@ export class CityScene extends Phaser.Scene {
 
     if (this.insideBuilding) {
       if (this.insideBuildingType === 'work' &&
-          Phaser.Math.Distance.Between(px, py, 500, 300) < 85) {
+          Phaser.Math.Distance.Between(px, py, 400, 300) < 90) {
         this.work();
         return;
       }
       if (this.insideBuildingType === 'home' &&
-          Phaser.Math.Distance.Between(px, py, 180, 142) < 105) {
+          Phaser.Math.Distance.Between(px, py, 300, 142) < 45) {
         this.restAtHome();
         return;
       }
@@ -537,7 +538,7 @@ export class CityScene extends Phaser.Scene {
 
   restAtHome() {
     if (!this.insideBuilding || this.insideBuildingType !== 'home' ||
-        Phaser.Math.Distance.Between(this.player.x, this.player.y, 180, 142) > 105) {
+        Phaser.Math.Distance.Between(this.player.x, this.player.y, 300, 142) > 45) {
       this.toast('Отдохнуть можно только у кровати дома.');
       return;
     }
@@ -556,27 +557,30 @@ export class CityScene extends Phaser.Scene {
     const close = document.getElementById('life-panel-close');
     const select = document.getElementById('profession-select');
     const rest = document.getElementById('rest-btn');
-    profile?.addEventListener('click', () => {
+    const onProfile = () => {
       panel?.classList.toggle('hidden');
       this.updateLifePanel();
-    });
-    close?.addEventListener('click', () => panel?.classList.add('hidden'));
-    select?.addEventListener('change', () => {
+    };
+    const onClose = () => panel?.classList.add('hidden');
+    const onSelect = () => {
       this.saveData.job.profession = select.value;
       this.updateLifePanel();
       this.persist({ force: true });
-      this.toast('Профессия выбрана. Идите на работу в здание офиса.');
-    });
-    rest?.addEventListener('click', () => this.restAtHome());
+      this.toast('Профессия выбрана. Идите на работу в офис.');
+    };
+    const onRest = () => this.restAtHome();
+    profile?.addEventListener('click', onProfile);
+    close?.addEventListener('click', onClose);
+    select?.addEventListener('change', onSelect);
+    rest?.addEventListener('click', onRest);
     this.lifePanelCleanup = () => {
-      profile?.replaceWith(profile.cloneNode(true));
-      close?.replaceWith(close.cloneNode(true));
-      select?.replaceWith(select.cloneNode(true));
-      rest?.replaceWith(rest.cloneNode(true));
+      profile?.removeEventListener('click', onProfile);
+      close?.removeEventListener('click', onClose);
+      select?.removeEventListener('change', onSelect);
+      rest?.removeEventListener('click', onRest);
     };
     this.updateLifePanel();
   }
-
   updateLifePanel() {
     const select = document.getElementById('profession-select');
     const profession = document.getElementById('current-profession');
