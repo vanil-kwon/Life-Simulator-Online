@@ -146,7 +146,6 @@ player.position.set(0,0,-12);
 const car=new THREE.Group();scene.add(car);car.position.set(3,.0,-7);
 box(car,'Car body',0,.62,0,1.9,.65,3.5,mats.car);box(car,'Car windows',0,1.08,-.2,1.55,.48,1.75,mats.glass);
 const carWheels=[];for(const x of [-.94,.94])for(const z of [-1.12,1.12]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.2,12),mat(0x202326));wheel.rotation.z=Math.PI/2;wheel.position.set(x,.35,z);car.add(wheel);carWheels.push(wheel);}
-flushStaticBatches();
 let yaw=0,pitch=.12,moveX=0,moveY=0,walking=0,energy=100,hunger=100,health=100,money=1250,driving=false;
 const stick=document.querySelector('#stick'),knob=document.querySelector('#knob');let movePointer=null,lastLook=null;
 stick.addEventListener('pointerdown',e=>{movePointer=e.pointerId;stick.setPointerCapture(e.pointerId);updateStick(e);});
