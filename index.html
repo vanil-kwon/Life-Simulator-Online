@@ -39,6 +39,28 @@
         <button id="menu-btn" class="icon-btn" aria-label="Меню">Ⅱ</button>
       </div>
       <div id="toast" class="toast"></div>
+      <div class="needs-hud" aria-label="Состояние персонажа">
+        <div class="need"><span>❤ Здоровье</span><b id="hud-health-value">100</b><div class="need-track"><i id="hud-health" class="health-fill"></i></div></div>
+        <div class="need"><span>⚡ Энергия</span><b id="hud-energy-value">100</b><div class="need-track"><i id="hud-energy" class="energy-fill"></i></div></div>
+        <div class="need"><span>🍗 Голод</span><b id="hud-hunger-value">100</b><div class="need-track"><i id="hud-hunger" class="hunger-fill"></i></div></div>
+        <div class="need"><span>🚿 Гигиена</span><b id="hud-hygiene-value">100</b><div class="need-track"><i id="hud-hygiene" class="hygiene-fill"></i></div></div>
+      </div>
+      <button id="profile-btn" class="profile-btn">ПРОФИЛЬ</button>
+      <div id="life-panel" class="life-panel hidden">
+        <div class="life-panel-head"><div><small>МОЯ ЖИЗНЬ</small><h2>Профессия и состояние</h2></div><button id="life-panel-close" aria-label="Закрыть">✕</button></div>
+        <p class="life-job-current">Работа: <b id="current-profession">Безработный</b></p>
+        <label for="profession-select">Выбери профессию</label>
+        <select id="profession-select">
+          <option value="courier">Курьер — $120 за смену</option>
+          <option value="seller">Продавец — $150 за смену</option>
+          <option value="builder">Строитель — $190 за смену</option>
+          <option value="mechanic">Механик — $220 за смену</option>
+        </select>
+        <p class="life-panel-note">Чтобы выйти на смену, зайди в здание «Работа» и подойди к рабочему месту.</p>
+        <p class="life-shifts">Отработано смен: <b id="shift-count">0</b></p>
+        <button id="rest-btn" class="secondary">Отдохнуть дома</button>
+        <p class="life-panel-note">Сон восстанавливает энергию и здоровье. Голод и гигиена постепенно снижаются.</p>
+      </div>
       <div class="hud-bottom">
         <div class="hint" id="control-hint">WASD / стрелки — движение · E — действие</div>
         <div class="mobile-controls">
