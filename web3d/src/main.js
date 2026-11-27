@@ -8,17 +8,17 @@ scene.background=new THREE.Color(0x9eb8c5);
 scene.fog=new THREE.Fog(0x9eb8c5,38,105);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,125);
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'low-power',alpha:false});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.0));
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.15));
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=false;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.05;
 root.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xdcecff,0x59604c,2.0));
-const sun=new THREE.DirectionalLight(0xffe6c4,2.0);sun.position.set(-25,38,18);scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xe4efff,0x59604c,1.55));
+const sun=new THREE.DirectionalLight(0xffe6c4,2.0);sun.position.set(-25,38,18);sun.castShadow=false;scene.add(sun);
 const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness,metalness:0});
-const mats={grass:mat(0x667c61),road:mat(0x343b40),side:mat(0xb7b6aa),white:mat(0xe4e0d4),glass:mat(0x7394a1,.35),skin:mat(0xc8916e),shirt:mat(0x304f67),pants:mat(0x26323b),car:mat(0x315d67,.55),line:mat(0xd8d2b6)};
+const mats={grass:mat(0x667c61),road:mat(0x343b40,.96),side:mat(0xb7b6aa,.95),white:mat(0xe4e0d4),glass:mat(0x7394a1,.2),skin:mat(0xc8916e),shirt:mat(0x304f67),pants:mat(0x26323b),car:mat(0x315d67,.32),line:mat(0xd8d2b6)};
 const boxGeo=new THREE.BoxGeometry(1,1,1);
 function box(parent,name,x,y,z,sx,sy,sz,material){const m=new THREE.Mesh(boxGeo,material);m.name=name;m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m;}
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,180),mats.grass);ground.rotation.x=-Math.PI/2;ground.position.y=-.09;scene.add(ground);
@@ -32,16 +32,56 @@ for(let i=0;i<13;i++){
  for(const side of [-1,1]){
   const h=7+(i*7+side*3)%10, w=6.5+(i%3)*.6;
   const x=side*(10+w/2);
-  const b=box(scene,'Apartment building',x,h/2,z,w,h,7,mat(buildingColors[(i+(side>0?1:0))%buildingColors.length]));
-  box(scene,'Facade base',x,h/2,z-side*3.54,w*.96,.3,.08,mats.white);
-  const winMat=mat(0x66828b,.4);
-  for(let row=1;row<Math.min(5,Math.floor(h/2));row++)for(let col=0;col<3;col++){
-   box(scene,'Window',x+(col-1)*1.8,h*.15+row*1.35,z-side*3.57,.85,.7,.07,winMat);
+  const facade=mat(buildingColors[(i+(side>0?1:0))%buildingColors.length],.92);
+  box(scene,'Apartment building',x,h/2,z,w,h,7,facade);
+  box(scene,'Ground floor stone plinth',x,.72,z-side*3.56,w,.85,.16,mat(0x777d7a,.95));
+  box(scene,'Roof parapet',x,h+.28,z,w+.18,.48,7.18,mat(0x777f80,.92));
+  box(scene,'Roof slab',x,h+.04,z,w+.12,.12,7.12,mat(0x555f60));
+  const winMat=mat(0x344c56,.28),frameMat=mat(0xd0cec4,.75),balconyMat=mat(0x555d5b,.72);
+  for(let row=1;row<Math.min(6,Math.floor(h/2));row++)for(let col=0;col<3;col++){
+   const wx=x+(col-1)*1.9, wy=.95+row*1.38, wz=z-side*3.59;
+   box(scene,'Window recess',wx,wy,wz,.98,.98,.11,mat(0x777d7b));
+   box(scene,'Glazed window',wx,wy,wz-side*.075,.78,.76,.045,winMat);
+   box(scene,'Window sill',wx,wy-.43,wz-side*.12,1.02,.09,.18,frameMat);
+   box(scene,'Window lintel',wx,wy+.43,wz-side*.12,1.02,.08,.16,frameMat);
+   box(scene,'Window mullion',wx,wy,wz-side*.15,.045,.78,.04,frameMat);
+   if(row>1 && (col+i)%2===0){
+    box(scene,'Balcony slab',wx,wy-.5,wz-side*.48,1.18,.09,.82,mat(0x777b77));
+    for(let k=-2;k<=2;k++)box(scene,'Balcony railing',wx+k*.22,wy-.18,wz-side*.82,.035,.55,.035,balconyMat);
+    box(scene,'Balcony top rail',wx,wy+.1,wz-side*.82,1.02,.045,.045,balconyMat);
+   }
   }
-  if(i%3===0)box(scene,'Shop awning',x,h*.22,z-side*3.9,w*.75,.25,.6,mat(0x9b6552));
+  const shopX=x, shopZ=z-side*3.72;
+  box(scene,'Shopfront glass',shopX,.95,shopZ,w*.72,1.45,.09,mat(0x35535b,.22));
+  box(scene,'Shop door',shopX-side*w*.27,.9,shopZ-side*.07,.72,1.8,.12,mat(0x263c43,.3));
+  box(scene,'Shop sign',shopX,1.95,shopZ-side*.16,w*.78,.32,.12,mat([0x9a684f,0x617b70,0x9a875e][i%3]));
+  if(i%3===0)box(scene,'Shop awning',x,2.25,z-side*4.05,w*.82,.16,.72,mat(0x9b6552));
+  if(i%2===0)box(scene,'AC outdoor unit',x+w*.34,h*.42,z-side*3.78,.52,.42,.3,mat(0x9da4a1));
  }
 }
 for(let i=0;i<22;i++){const x=(i%2?1:-1)*(8+Math.random()*22),z=-58+Math.random()*116;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.13,.2,1.7,5),mat(0x66503d));trunk.position.set(x,.85,z);scene.add(trunk);const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1.05,0),mat(0x58785d));crown.position.set(x,2,z);scene.add(crown);}
+const lampMat=mat(0x303b3e,.55),lampGlow=new THREE.MeshStandardMaterial({color:0xffe6ad,emissive:0xffc66d,emissiveIntensity:1.2});
+for(let z=-51;z<=51;z+=17)for(const side of [-1,1]){
+ const x=side*7.1;
+ const pole=new THREE.Mesh(new THREE.CylinderGeometry(.055,.085,5.1,7),lampMat);pole.position.set(x,2.55,z);scene.add(pole);
+ const arm=box(scene,'Street lamp arm',x-side*.48,4.95,z,.95,.07,.07,lampMat);
+ const head=new THREE.Mesh(new THREE.BoxGeometry(.38,.12,.25),lampGlow);head.position.set(x-side*.9,4.86,z);scene.add(head);
+}
+const parkedCars=[];
+for(let i=0;i<7;i++){
+ const c=new THREE.Group(),side=i%2?1:-1,z=-43+i*14;
+ c.position.set(side*5.2,.02,z);scene.add(c);
+ const paint=mat([0x485d69,0x8c4e42,0x9b9b91,0x344b42][i%4],.32);
+ box(c,'Car lower body',0,.55,0,1.82,.58,3.55,paint);
+ box(c,'Car cabin',0,1.02,-.22,1.48,.65,1.9,mat(0x344b54,.2));
+ box(c,'Windshield',0,1.06,-1.2,1.34,.48,.035,mat(0x7d9ba4,.18));
+ box(c,'Rear glass',0,1.06,.76,1.34,.48,.035,mat(0x526d76,.18));
+ for(const xx of [-.94,.94])for(const zz of [-1.12,1.12]){
+  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.2,12),mat(0x1d2224));wheel.rotation.z=Math.PI/2;wheel.position.set(xx,.34,zz);c.add(wheel);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.15,.15,.205,10),mat(0x9da4a3,.45));hub.rotation.z=Math.PI/2;hub.position.set(xx,.34,zz);c.add(hub);
+ }
+ parkedCars.push(c);
+}
 const player=new THREE.Group();scene.add(player);
 const body= new THREE.Group();player.add(body);
 // Real CC0 human model. Loaded on demand; the simple rigged placeholder remains as fallback.
