@@ -70,7 +70,13 @@ export class CityScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-ESC', this._onPause);
 
     // ---- STATE ----
-    this.inCar = false;
+    this.inCar = Boolean(this.saveData.vehicle.inUse);
+    if (this.inCar) {
+      this.player.body.enable = false;
+      this.player.setVisible(false);
+      this.player.setPosition(this.car.x, this.car.y);
+      this.cameras.main.startFollow(this.car, true, 0.08, 0.08);
+    }
     this.carSpeed = 0;
     this.joystick = { x: 0, y: 0 };
     this.money = this.saveData.economy.money;
@@ -520,6 +526,7 @@ export class CityScene extends Phaser.Scene {
     this.saveData.vehicle.x = this.car.x;
     this.saveData.vehicle.y = this.car.y;
     this.saveData.vehicle.rotation = this.car.rotation;
+    this.saveData.vehicle.inUse = this.inCar;
     this.saveData.economy.money = this.money;
     saveGame(this.saveData);
   }
