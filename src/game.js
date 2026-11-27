@@ -79,6 +79,8 @@ export class CityScene extends Phaser.Scene {
     }
     this.carSpeed = 0;
     this.joystick = { x: 0, y: 0 };
+    this.driveInput = { gas: false, brake: false };
+    this.updateControlsMode();
     this.money = this.saveData.economy.money;
     this.lastSave = 0;
     this.toastTimer = null;
@@ -86,6 +88,7 @@ export class CityScene extends Phaser.Scene {
     this.setupTouchControls();
     this.refreshHud();
     this.updateHint();
+    this.updateControlsMode();
     this.restoreSavedInterior();
 
     this.events.once('shutdown', this.cleanup, this);
@@ -169,8 +172,36 @@ export class CityScene extends Phaser.Scene {
     };
     const interactButton = document.getElementById('interact-btn');
     const carButton = document.getElementById('car-btn');
+    const gasButton = document.getElementById('gas-btn');
+    const brakeButton = document.getElementById('brake-btn');
     const onInteract = () => this.interact();
     const onCar = () => this.toggleCar();
+    const bindPedal = (button, inputName) => {
+      if (!button) return () => {};
+      const press = event => {
+        event.preventDefault();
+        button.setPointerCapture?.(event.pointerId);
+        this.driveInput[inputName] = true;
+        button.classList.add('pressed');
+      };
+      const release = event => {
+        if (event && event.pointerId !== undefined && !button.hasPointerCapture?.(event.pointerId)) return;
+        this.driveInput[inputName] = false;
+        button.classList.remove('pressed');
+      };
+      button.addEventListener('pointerdown', press);
+      button.addEventListener('pointerup', release);
+      button.addEventListener('pointercancel', release);
+      button.addEventListener('lostpointercapture', release);
+      return () => {
+        button.removeEventListener('pointerdown', press);
+        button.removeEventListener('pointerup', release);
+        button.removeEventListener('pointercancel', release);
+        button.removeEventListener('lostpointercapture', release);
+      };
+    };
+    const cleanupGas = bindPedal(gasButton, 'gas');
+    const cleanupBrake = bindPedal(brakeButton, 'brake');
     const startPointer = e => { pointer = e.pointerId; joy.setPointerCapture(pointer); update(e); };
     const movePointer = e => { if (e.pointerId === pointer) update(e); };
     joy.addEventListener('pointerdown', startPointer);
@@ -186,6 +217,8 @@ export class CityScene extends Phaser.Scene {
       joy.removeEventListener('pointercancel', end);
       interactButton?.removeEventListener('click', onInteract);
       carButton?.removeEventListener('click', onCar);
+      cleanupGas();
+      cleanupBrake();
     };
   }
 
@@ -226,26 +259,26 @@ export class CityScene extends Phaser.Scene {
   }
 
   updateCar(dt) {
-    // Ввод: клавиатура + джойстик
-    let keyThrottle = 0, keySteer = 0;
-    if (this.keys.W.isDown || this.keys.UP.isDown) keyThrottle += 1;
-    if (this.keys.S.isDown || this.keys.DOWN.isDown) keyThrottle -= 1;
+    // Отдельные педали на экране + привычное управление клавиатурой.
+    const keyGas = this.keys.W.isDown || this.keys.UP.isDown;
+    const keyBrake = this.keys.S.isDown || this.keys.DOWN.isDown;
+    let keySteer = 0;
     if (this.keys.D.isDown || this.keys.RIGHT.isDown) keySteer += 1;
     if (this.keys.A.isDown || this.keys.LEFT.isDown) keySteer -= 1;
 
-    const throttle = Phaser.Math.Clamp(keyThrottle - this.joystick.y, -1, 1);
+    const gas = this.driveInput.gas || keyGas;
+    const brake = this.driveInput.brake || keyBrake;
     const steer = Phaser.Math.Clamp(keySteer + this.joystick.x, -1, 1);
 
-    // Ускорение
-    this.carSpeed += throttle * CAR_ACCEL * dt;
-
-    // Трение / торможение
-    if (Math.abs(throttle) < 0.1) {
-      this.carSpeed *= Math.pow(0.55, dt);
+    if (gas && !brake) {
+      this.carSpeed += CAR_ACCEL * dt;
+    } else if (brake) {
+      // Педаль тормоза гасит скорость, не переключая машину резко на задний ход.
+      this.carSpeed = Phaser.Math.Linear(this.carSpeed, 0, Math.min(1, 8 * dt));
     } else {
-      this.carSpeed *= Math.pow(0.93, dt);
+      this.carSpeed *= Math.pow(0.42, dt);
     }
-    this.carSpeed = Phaser.Math.Clamp(this.carSpeed, -CAR_MAX_REVERSE, CAR_MAX_FORWARD);
+    this.carSpeed = Phaser.Math.Clamp(this.carSpeed, 0, CAR_MAX_FORWARD);
 
     // Руль: пропорционален скорости, инвертируется при движении назад
     const speedFactor = Phaser.Math.Clamp(Math.abs(this.carSpeed) / 80, 0, 1);
@@ -474,14 +507,28 @@ export class CityScene extends Phaser.Scene {
       this.toast('Вы вышли из автомобиля.');
     }
     this.updateHint();
+    this.updateControlsMode();
+    this.driveInput.gas = false;
+    this.driveInput.brake = false;
     this.persist();
+  }
+
+  updateControlsMode() {
+    const hud = document.getElementById('hud');
+    const carButton = document.getElementById('car-btn');
+    if (hud) hud.classList.toggle('driving', Boolean(this.inCar));
+    if (carButton) {
+      carButton.innerHTML = this.inCar
+        ? 'EXIT<br><small>ВЫЙТИ</small>'
+        : 'CAR<br><small>МАШИНА</small>';
+    }
   }
 
   updateHint() {
     const hint = document.getElementById('control-hint');
     if (!hint) return;
     hint.textContent = this.inCar
-      ? 'W/S — газ · A/D — руль · E — выйти'
+      ? '◀ ▶ / джойстик — руль · педали — газ и тормоз · E — выйти'
       : 'WASD / стрелки — движение · E — действие';
   }
 
