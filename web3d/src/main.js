@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import './style.css';
 
 const root=document.querySelector('#game');
@@ -7,7 +8,7 @@ scene.background=new THREE.Color(0x9eb8c5);
 scene.fog=new THREE.Fog(0x9eb8c5,38,105);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,125);
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'low-power',alpha:false});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.35));
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.0));
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=false;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -43,6 +44,38 @@ for(let i=0;i<13;i++){
 for(let i=0;i<22;i++){const x=(i%2?1:-1)*(8+Math.random()*22),z=-58+Math.random()*116;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.13,.2,1.7,5),mat(0x66503d));trunk.position.set(x,.85,z);scene.add(trunk);const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1.05,0),mat(0x58785d));crown.position.set(x,2,z);scene.add(crown);}
 const player=new THREE.Group();scene.add(player);
 const body= new THREE.Group();player.add(body);
+// Real CC0 human model. Loaded on demand; the simple rigged placeholder remains as fallback.
+const humanStatus=document.createElement('div');
+humanStatus.className='asset-status';
+humanStatus.textContent='Загрузка 3D-персонажа…';
+root.appendChild(humanStatus);
+const humanLoader=new GLTFLoader();
+humanLoader.load(
+ 'https://files.innerscene.com/library/idle-standing-sam-3d-person-animated-1f9f1217/4ca6054a9945f1c21da5/idle-standing-sam-3d-person-animated.glb',
+ (gltf)=>{
+   const human=gltf.scene;
+   const bounds=new THREE.Box3().setFromObject(human);
+   const size=bounds.getSize(new THREE.Vector3());
+   const scale=1.8/Math.max(size.y,0.001);
+   human.scale.setScalar(scale);
+   const centered=new THREE.Box3().setFromObject(human);
+   human.position.y-=centered.min.y;
+   human.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;if(o.material){o.material.roughness=Math.max(o.material.roughness??.8,.72);}}});
+   body.visible=false;
+   player.add(human);
+   if(gltf.animations?.length){
+     const mixer=new THREE.AnimationMixer(human);
+     const idle=gltf.animations.find(a=>/idle|stand/i.test(a.name))||gltf.animations[0];
+     mixer.clipAction(idle).play();
+     human.userData.mixer=mixer;
+     human.userData.mixerAction=true;
+   }
+   humanStatus.remove();
+ },
+ undefined,
+ (error)=>{console.warn('Human GLB could not be loaded; using fallback character.',error);humanStatus.textContent='Персонаж загружается позже · временная модель';setTimeout(()=>humanStatus.remove(),3500);}
+);
+
 const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.55,3,6),mats.shirt);torso.position.y=1.18;body.add(torso);
 const head=new THREE.Mesh(new THREE.SphereGeometry(.23,8,6),mats.skin);head.position.y=1.85;body.add(head);
 const legs=[];
@@ -69,6 +102,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const len=Math.hypot(moveX,moveY),moving=len>.08;
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const dir=forward.multiplyScalar(moveY).add(right.multiplyScalar(moveX));if(dir.lengthSq()>1)dir.normalize();
+ player.traverse(o=>{if(o.userData.mixer)o.userData.mixer.update(dt);});
  if(moving){player.position.addScaledVector(dir,dt*(energy>0?3.5:2));player.rotation.y=Math.atan2(dir.x,dir.z);walking+=dt*9;legs[0].rotation.x=Math.sin(walking)*.55;legs[1].rotation.x=-Math.sin(walking)*.55;energy=Math.max(0,energy-dt*.24);}else{legs.forEach(l=>l.rotation.x=0);energy=Math.min(100,energy+dt*.45);}
  hunger=Math.max(0,hunger-dt*.018);if(hunger<12)health=Math.max(1,health-dt*.03);
  const target=new THREE.Vector3(player.position.x+Math.sin(yaw)*Math.cos(pitch)*5,player.position.y+2.7+Math.sin(pitch)*3,player.position.z+Math.cos(yaw)*Math.cos(pitch)*5);
