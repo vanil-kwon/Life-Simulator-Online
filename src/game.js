@@ -82,6 +82,14 @@ export class CityScene extends Phaser.Scene {
     this.driveInput = { gas: false, brake: false, left: false, right: false };
     this.updateControlsMode();
     this.money = this.saveData.economy.money;
+    this.needs = this.saveData.stats;
+    this.needs.health ??= 100;
+    this.needs.hunger ??= 100;
+    this.needs.energy ??= 100;
+    this.needs.hygiene ??= 100;
+    this.saveData.job.profession ??= 'courier';
+    this.needsTick = 0;
+    this.bindLifePanel();
     this.lastSave = 0;
     this.toastTimer = null;
     this.toast('Добро пожаловать в Pixel City!');
@@ -226,11 +234,12 @@ export class CityScene extends Phaser.Scene {
   update(time, delta) {
     if (!this.player || this.scene.isPaused()) return;
     const dt = delta / 1000;
+    this.updateNeeds(dt);
 
     if (this.inCar) {
       this.updateCar(dt);
     } else {
-      const speed = 145;
+      const speed = this.needs.energy <= 0 ? 85 : 145;
       let x = this.joystick.x, y = this.joystick.y;
       if (this.keys.A.isDown || this.keys.LEFT.isDown) x -= 1;
       if (this.keys.D.isDown || this.keys.RIGHT.isDown) x += 1;
@@ -240,6 +249,7 @@ export class CityScene extends Phaser.Scene {
       if (length > 1) { x /= length; y /= length; }
       this.player.setVelocity(x * speed, y * speed);
       if (Math.abs(x) + Math.abs(y) > 0.05) {
+        this.needs.energy = Math.max(0, this.needs.energy - dt * 0.10);
         this.saveData.player.direction = Math.abs(x) > Math.abs(y)
           ? (x > 0 ? 'right' : 'left')
           : (y > 0 ? 'down' : 'up');
@@ -316,6 +326,11 @@ export class CityScene extends Phaser.Scene {
       if (this.insideBuildingType === 'work' &&
           Phaser.Math.Distance.Between(px, py, 500, 300) < 85) {
         this.work();
+        return;
+      }
+      if (this.insideBuildingType === 'home' &&
+          Phaser.Math.Distance.Between(px, py, 180, 142) < 105) {
+        this.restAtHome();
         return;
       }
       if (Phaser.Math.Distance.Between(px, py, 320, 420) < 65) {
@@ -473,11 +488,103 @@ export class CityScene extends Phaser.Scene {
   }
 
   work() {
-    this.money += 150;
-    this.saveData.economy.money = this.money;
+    const jobs = {
+      courier: { name: 'Курьер', pay: 120 },
+      seller: { name: 'Продавец', pay: 150 },
+      builder: { name: 'Строитель', pay: 190 },
+      mechanic: { name: 'Механик', pay: 220 },
+    };
+    const job = jobs[this.saveData.job.profession] || jobs.courier;
+    const now = Date.now();
+    if (this.needs.energy < 20) {
+      this.toast('Слишком мало энергии. Отдохните дома.');
+      return;
+    }
+    if (this.needs.hunger < 10) {
+      this.toast('Вы слишком голодны. Сначала нужно поесть.');
+      return;
+    }
+    if (now - (this.saveData.job.lastShift || 0) < 5 * 60 * 1000) {
+      this.toast('Вы уже работали недавно. Следующая смена позже.');
+      return;
+    }
+    this.money += job.pay;
+    this.saveData.job.lastShift = now;
+    this.saveData.job.shifts = (this.saveData.job.shifts || 0) + 1;
+    this.needs.energy = Math.max(0, this.needs.energy - 28);
+    this.needs.hunger = Math.max(0, this.needs.hunger - 14);
+    this.needs.hygiene = Math.max(0, this.needs.hygiene - 8);
     this.refreshHud();
-    this.toast('Смена завершена! Вы заработали $150.');
+    this.updateLifePanel();
+    this.toast(`Смена завершена: ${job.name}. Зарплата $ ${job.pay}!`);
     this.persist({ force: true });
+  }
+
+  updateNeeds(dt) {
+    this.needsTick += dt;
+    if (this.needsTick < 10) return;
+    const elapsed = this.needsTick;
+    this.needsTick = 0;
+    this.needs.hunger = Math.max(0, this.needs.hunger - elapsed * 0.025);
+    this.needs.hygiene = Math.max(0, this.needs.hygiene - elapsed * 0.012);
+    if (this.needs.hunger < 15 || this.needs.hygiene < 10) {
+      this.needs.health = Math.max(0, this.needs.health - elapsed * 0.04);
+    } else if (this.needs.hunger > 60 && this.needs.energy > 30) {
+      this.needs.health = Math.min(100, this.needs.health + elapsed * 0.008);
+    }
+    this.refreshHud();
+  }
+
+  restAtHome() {
+    if (!this.insideBuilding || this.insideBuildingType !== 'home' ||
+        Phaser.Math.Distance.Between(this.player.x, this.player.y, 180, 142) > 105) {
+      this.toast('Отдохнуть можно только у кровати дома.');
+      return;
+    }
+    this.needs.energy = Math.min(100, this.needs.energy + 65);
+    this.needs.health = Math.min(100, this.needs.health + 18);
+    this.needs.hunger = Math.max(0, this.needs.hunger - 8);
+    this.needs.hygiene = Math.max(0, this.needs.hygiene - 4);
+    this.refreshHud();
+    this.toast('Вы отдохнули. Энергия и здоровье восстановлены.');
+    this.persist({ force: true });
+  }
+
+  bindLifePanel() {
+    const panel = document.getElementById('life-panel');
+    const profile = document.getElementById('profile-btn');
+    const close = document.getElementById('life-panel-close');
+    const select = document.getElementById('profession-select');
+    const rest = document.getElementById('rest-btn');
+    profile?.addEventListener('click', () => {
+      panel?.classList.toggle('hidden');
+      this.updateLifePanel();
+    });
+    close?.addEventListener('click', () => panel?.classList.add('hidden'));
+    select?.addEventListener('change', () => {
+      this.saveData.job.profession = select.value;
+      this.updateLifePanel();
+      this.persist({ force: true });
+      this.toast('Профессия выбрана. Идите на работу в здание офиса.');
+    });
+    rest?.addEventListener('click', () => this.restAtHome());
+    this.lifePanelCleanup = () => {
+      profile?.replaceWith(profile.cloneNode(true));
+      close?.replaceWith(close.cloneNode(true));
+      select?.replaceWith(select.cloneNode(true));
+      rest?.replaceWith(rest.cloneNode(true));
+    };
+    this.updateLifePanel();
+  }
+
+  updateLifePanel() {
+    const select = document.getElementById('profession-select');
+    const profession = document.getElementById('current-profession');
+    const shifts = document.getElementById('shift-count');
+    const names = { courier: 'Курьер', seller: 'Продавец', builder: 'Строитель', mechanic: 'Механик' };
+    if (select) select.value = this.saveData.job.profession || 'courier';
+    if (profession) profession.textContent = names[this.saveData.job.profession] || 'Безработный';
+    if (shifts) shifts.textContent = this.saveData.job.shifts || 0;
   }
 
   toggleCar() {
@@ -553,6 +660,14 @@ export class CityScene extends Phaser.Scene {
     if (nameEl) nameEl.textContent = this.saveData.player.name;
     if (moneyEl) moneyEl.textContent = '$' + this.money.toLocaleString('ru-RU');
     if (dayEl) dayEl.textContent = this.saveData.world.day;
+    const stats = ['health', 'energy', 'hunger', 'hygiene'];
+    for (const key of stats) {
+      const value = Math.round(Phaser.Math.Clamp(this.needs?.[key] ?? 100, 0, 100));
+      const bar = document.getElementById(`hud-${key}`);
+      const label = document.getElementById(`hud-${key}-value`);
+      if (bar) bar.style.width = value + '%';
+      if (label) label.textContent = value;
+    }
   }
 
   toast(message) {
@@ -589,6 +704,7 @@ export class CityScene extends Phaser.Scene {
     this.saveData.vehicle.rotation = this.car.rotation;
     this.saveData.vehicle.inUse = this.inCar;
     this.saveData.economy.money = this.money;
+    this.saveData.stats = { ...this.needs };
     saveGame(this.saveData);
   }
 }
