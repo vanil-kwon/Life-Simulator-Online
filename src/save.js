@@ -1,7 +1,7 @@
 const KEY = 'life-simulator-save';
 const OLD_KEY = 'life-simulator-save-v1';
 const NAME_KEY = 'life-simulator-name';
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 export const defaultSave = (name = 'Игрок') => ({
   version: CURRENT_VERSION,
@@ -11,9 +11,9 @@ export const defaultSave = (name = 'Игрок') => ({
   world: { day: 1, lastPlayed: Date.now() },
   settings: { sound: true },
   inside: null,
-  stats: { hunger: 100, energy: 100, hygiene: 100 },
+  stats: { health: 100, hunger: 100, energy: 100, hygiene: 100 },
   inventory: { items: [] },
-  job: { lastShift: 0, shifts: 0 },
+  job: { profession: 'courier', lastShift: 0, shifts: 0 },
 });
 
 function deepMerge(target, source) {
