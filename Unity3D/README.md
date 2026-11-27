@@ -3,7 +3,7 @@
 Новая версия Life Simulator: реалистичный 3D-город, камера от третьего лица, Android-first.
 
 ## Технологии
-- Unity 6.0 LTS
+- Unity 6.3 LTS
 - Universal Render Pipeline (URP)
 - Input System
 - C#
@@ -13,9 +13,9 @@
 Это стартовый каркас, а не готовая APK. Здесь находятся архитектура и первые runtime-компоненты. Для открытия, создания сцены и сборки Android нужен Unity Editor на Windows, macOS или Linux. Android-телефон сам по себе не заменяет Unity Editor.
 
 ## Как открыть
-1. Установить Unity Hub и Unity Editor 6.0 LTS с модулями Android Build Support, Android SDK & NDK Tools и OpenJDK.
+1. Установить Unity Hub и Unity Editor 6.3 LTS с модулями Android Build Support, Android SDK & NDK Tools и OpenJDK.
 2. В Unity Hub выбрать **Add > Add project from disk** и указать папку `Unity3D`.
-3. Создать сцену `Assets/_Project/Scenes/Prototype.unity`, сохранить её и добавить в Build Profiles / Build Settings.
+3. После импорта открыть меню **Life Simulator > Create Prototype Scene** — оно создаст сцену и добавит её в Build Settings.
 4. Добавить в сцену пустой объект необязательно: `PrototypeWorldBootstrap` создаёт серый прототип города автоматически после загрузки сцены.
 5. Переключить платформу на Android и проверить на устройстве.
 
