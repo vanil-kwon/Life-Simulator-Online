@@ -39,10 +39,10 @@ export class CityScene extends Phaser.Scene {
 
     // ---- COLLIDERS ----
     if (this.worldWalls) {
-      this.physics.add.collider(this.player, this.worldWalls);
-      this.physics.add.collider(this.car, this.worldWalls);
+      this.worldPlayerCollider = this.physics.add.collider(this.player, this.worldWalls);
+      this.worldCarCollider = this.physics.add.collider(this.car, this.worldWalls);
     }
-    this.physics.add.collider(this.player, this.car);
+    this.playerCarCollider = this.physics.add.collider(this.player, this.car);
 
     // ---- NPC ----
     this.npcs = [];
@@ -80,6 +80,7 @@ export class CityScene extends Phaser.Scene {
     this.setupTouchControls();
     this.refreshHud();
     this.updateHint();
+    this.restoreSavedInterior();
 
     this.events.once('shutdown', this.cleanup, this);
   }
@@ -297,6 +298,14 @@ export class CityScene extends Phaser.Scene {
   enterBuilding(building) {
     if (this.inCar || this.insideBuilding) return;
 
+    // Город скрывается, но его тела остаются в Arcade Physics.
+    // Отключаем все внешние столкновения и сам автомобиль на время интерьера.
+    if (this.worldPlayerCollider) this.worldPlayerCollider.active = false;
+    if (this.worldCarCollider) this.worldCarCollider.active = false;
+    if (this.playerCarCollider) this.playerCarCollider.active = false;
+    this.car.body.setVelocity(0, 0);
+    this.car.body.enable = false;
+
     this.insideBuilding = true;
     this.insideBuildingType = building.type;
     this.exteriorPosition = { x: this.player.x, y: this.player.y };
@@ -346,6 +355,36 @@ export class CityScene extends Phaser.Scene {
     this.player.setDepth(10);
 
     this.toast('Вы вошли: ' + building.type);
+    this.persist({ force: true });
+  }
+
+  restoreSavedInterior() {
+    const saved = this.saveData?.inside;
+    if (!saved || typeof saved !== 'object') return;
+
+    const building = this.cityBuildings.find(item => item.type === saved.type);
+    if (!building) {
+      this.saveData.inside = null;
+      return;
+    }
+
+    const exteriorX = Number.isFinite(saved.exteriorX) ? saved.exteriorX : this.player.x;
+    const exteriorY = Number.isFinite(saved.exteriorY) ? saved.exteriorY : this.player.y;
+    this.player.setPosition(exteriorX, exteriorY);
+    this.enterBuilding(building);
+
+    const interiorX = Number.isFinite(saved.interiorX) ? saved.interiorX : 320;
+    const interiorY = Number.isFinite(saved.interiorY) ? saved.interiorY : 375;
+    this.player.setPosition(
+      Phaser.Math.Clamp(interiorX, 24, INTERIOR_W - 24),
+      Phaser.Math.Clamp(interiorY, 40, INTERIOR_H - 36)
+    );
+
+    // Защита старых/повреждённых сохранений с координатами внутри мебели.
+    if (this.physics.overlap(this.player, this.interiorWalls)) {
+      this.player.setPosition(320, 375);
+    }
+    this.persist({ force: true });
   }
 
   exitBuilding() {
@@ -367,6 +406,12 @@ export class CityScene extends Phaser.Scene {
 
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+
+    // Сначала возвращаем городские границы, затем включаем тела автомобиля.
+    this.car.body.enable = true;
+    if (this.worldPlayerCollider) this.worldPlayerCollider.active = true;
+    if (this.worldCarCollider) this.worldCarCollider.active = true;
+    if (this.playerCarCollider) this.playerCarCollider.active = true;
 
     this.player.setPosition(this.exteriorPosition.x, this.exteriorPosition.y);
     this.player.setVelocity(0, 0);
@@ -453,8 +498,6 @@ export class CityScene extends Phaser.Scene {
   }
 
   persist(options = {}) {
-    if (this.insideBuilding && !options.force) return;
-
     if (this.insideBuilding) {
       this.saveData.inside = {
         type: this.insideBuildingType,
