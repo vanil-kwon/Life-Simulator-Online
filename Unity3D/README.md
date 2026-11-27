@@ -1,0 +1,30 @@
+# Life Simulator 3D
+
+Новая версия Life Simulator: реалистичный 3D-город, камера от третьего лица, Android-first.
+
+## Технологии
+- Unity 6.3 LTS
+- Universal Render Pipeline (URP)
+- Input System
+- C#
+- Целевая платформа: Android (ARM64)
+
+## Состояние
+Это стартовый каркас, а не готовая APK. Здесь находятся архитектура и первые runtime-компоненты. Для открытия, создания сцены и сборки Android нужен Unity Editor на Windows, macOS или Linux. Android-телефон сам по себе не заменяет Unity Editor.
+
+## Как открыть
+1. Установить Unity Hub и Unity Editor 6.3 LTS с модулями Android Build Support, Android SDK & NDK Tools и OpenJDK.
+2. В Unity Hub выбрать **Add > Add project from disk** и указать папку `Unity3D`.
+3. В Project Settings > Graphics назначить созданный через **Assets > Create > Rendering > URP Asset (with Universal Renderer)** URP Asset в поле Default Render Pipeline. Затем открыть меню **Life Simulator > Create Prototype Scene** — оно создаст сцену и добавит её в Build Settings.
+4. Добавить в сцену пустой объект необязательно: `PrototypeWorldBootstrap` создаёт серый прототип города автоматически после загрузки сцены.
+5. Переключить платформу на Android и проверить на устройстве.
+
+## Первый вертикальный срез
+- Персонаж от третьего лица с CharacterController.
+- Камера с вращением вокруг персонажа.
+- Серый тестовый квартал и автомобиль-заглушка.
+- Сенсорное управление: левая половина экрана — движение, правая — обзор.
+- Базовые показатели здоровья, энергии, голода и гигиены.
+
+## Важно
+Пока используются процедурные примитивы-заглушки. Реалистичные модели, анимации, материалы, звук и оптимизация добавляются после проверки базового управления на реальном Android-устройстве.
