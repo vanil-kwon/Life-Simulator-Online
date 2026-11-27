@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy Life Simulator 3D to GitHub Pages
 
 on:
   push:
@@ -24,11 +24,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - name: Install dependencies
-        run: npm install
-      - name: Build
-        run: npm run build
+      - name: Install 3D prototype dependencies
+        run: npm --prefix web3d install
+      - name: Build 3D game for the main Pages URL
+        run: npm --prefix web3d run build -- --base=/Life-Simulator-Online/
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
@@ -36,7 +35,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: web3d/dist
 
   deploy:
     environment:
