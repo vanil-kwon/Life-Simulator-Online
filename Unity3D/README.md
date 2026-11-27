@@ -3,14 +3,14 @@
 Новая версия Life Simulator: реалистичный 3D-город, камера от третьего лица, Android-first.
 
 ## Технологии
-- Unity 6.3 LTS
-- Universal Render Pipeline (URP)
-- Input System
-- C#
+- Three.js + WebGL (Android Chrome)
+- Mobile-first WebGL renderer
+- Pointer Events touch controls
+- JavaScript
 - Целевая платформа: Android (ARM64)
 
 ## Состояние
-Это стартовый каркас, а не готовая APK. Здесь находятся архитектура и первые runtime-компоненты. Для открытия, создания сцены и сборки Android нужен Unity Editor на Windows, macOS или Linux. Android-телефон сам по себе не заменяет Unity Editor.
+Это стартовый каркас, а не готовая APK. Здесь находятся архитектура и первые runtime-компоненты. Новая мобильная версия находится в `web3d/` и запускается в Chrome. Папка `Unity3D/` сохранена как ранний технический эксперимент, но для работы на одном Android-телефоне основной путь — WebGL.
 
 ## Как открыть
 1. Установить Unity Hub и Unity Editor 6.3 LTS с модулями Android Build Support, Android SDK & NDK Tools и OpenJDK.
