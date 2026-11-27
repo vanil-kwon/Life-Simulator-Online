@@ -82,6 +82,21 @@ for(let i=0;i<7;i++){
  }
  parkedCars.push(c);
 }
+// Interactive city services: grocery kiosk and a small job point near the starting block.
+const servicePoints=[
+ {kind:'shop',position:new THREE.Vector3(-8,0,-12),label:'МАГАЗИН'},
+ {kind:'work',position:new THREE.Vector3(8,0,-12),label:'РАБОТА'}
+];
+for(const p of servicePoints){
+ const g=new THREE.Group();g.position.copy(p.position);scene.add(g);
+ box(g,'Service kiosk base',0,.55,0,2.4,1.1,1.5,mat(p.kind==='shop'?0x567d70:0x526a83,.8));
+ box(g,'Service kiosk counter',0,1.13,.05,2.5,.12,1.6,mat(0xd0c8b7,.8));
+ box(g,'Service kiosk sign',0,1.85,-.02,2.3,.42,.12,mat(p.kind==='shop'?0x9b694e:0x46647d,.6));
+ const canvas=document.createElement('canvas');canvas.width=512;canvas.height=96;
+ const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.font='bold 54px Arial';ctx.textAlign='center';ctx.fillText(p.label,256,66);
+ const tex=new THREE.CanvasTexture(canvas);const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.15,.4),new THREE.MeshBasicMaterial({map:tex,transparent:true}));
+ sign.position.set(0,1.85,.055);g.add(sign);
+}
 const player=new THREE.Group();scene.add(player);
 const body= new THREE.Group();player.add(body);
 // Real CC0 human model. Loaded on demand; the simple rigged placeholder remains as fallback.
@@ -136,11 +151,27 @@ renderer.domElement.addEventListener('pointermove',e=>{if(lastLook&&lastLook.id=
 function endLook(e){if(lastLook&&lastLook.id===e.pointerId)lastLook=null;}renderer.domElement.addEventListener('pointerup',endLook);renderer.domElement.addEventListener('pointercancel',endLook);
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2100);}
 const actionButton=document.querySelector('#action');
+const moneyLabel=document.querySelector('#money');
+function updateMoney(){moneyLabel.textContent='$ '+money.toLocaleString('ru-RU');}
+function nearestService(){
+ let best=null,dist=Infinity;
+ for(const p of servicePoints){const d=player.position.distanceTo(p.position);if(d<dist){best=p;dist=d;}}
+ return dist<3.2?best:null;
+}
 actionButton.addEventListener('click',()=>{
  if(driving){driving=false;player.visible=true;player.position.set(car.position.x+1.8,0,car.position.z);player.rotation.y=car.rotation.y;toast('Вы вышли из автомобиля');return;}
  const d=player.position.distanceTo(car.position);
  if(d<4){driving=true;player.visible=false;player.position.copy(car.position);toast('Вы за рулём · джойстик управляет автомобилем');return;}
- toast('Подойдите ближе к автомобилю, чтобы сесть за руль');
+ const service=nearestService();
+ if(service?.kind==='shop'){
+  if(money<35){toast('Не хватает денег · еда стоит $35');return;}
+  money-=35;hunger=Math.min(100,hunger+48);energy=Math.min(100,energy+12);updateMoney();toast('Покупка: продукты −$35 · сытость +48');return;
+ }
+ if(service?.kind==='work'){
+  if(energy<18){toast('Слишком мало энергии для смены · отдохни');return;}
+  energy=Math.max(0,energy-18);money+=120;updateMoney();toast('Рабочая смена завершена · заработано $120');return;
+ }
+ toast('Подойди к машине, магазину или месту работы');
 });
 function hud(){for(const [k,v] of Object.entries({health,energy,hunger})){document.getElementById(k).style.width=v+'%';document.getElementById(k+'-t').textContent=Math.round(v);}}
 const clock=new THREE.Clock();
@@ -162,11 +193,11 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
    energy=Math.max(0,energy-dt*.24);
   }
  }else{legs.forEach(l=>l.rotation.x=0);if(!driving)energy=Math.min(100,energy+dt*.45);}
- hunger=Math.max(0,hunger-dt*.018);if(hunger<12)health=Math.max(1,health-dt*.03);
+ hunger=Math.max(0,hunger-dt*.018);if(hunger<12)health=Math.max(1,health-dt*.03);if(health<100&&hunger>55&&energy>55)health=Math.min(100,health+dt*.012);
  const followed=driving?car:player;
  const target=new THREE.Vector3(followed.position.x+Math.sin(yaw)*Math.cos(pitch)*(driving?7:5),followed.position.y+(driving?3.6:2.7)+Math.sin(pitch)*3,followed.position.z+Math.cos(yaw)*Math.cos(pitch)*(driving?7:5));
  camera.position.lerp(target,1-Math.exp(-dt*7));camera.lookAt(followed.position.x,driving?1.05:1.25,followed.position.z);
- actionButton.textContent=driving?'ВЫЙТИ ИЗ АВТО':'ВЗАИМОДЕЙСТВИЕ';
+ const nearby=driving?null:nearestService();actionButton.textContent=driving?'ВЫЙТИ ИЗ АВТО':nearby?.kind==='shop'?'КУПИТЬ ЕДУ':nearby?.kind==='work'?'РАБОТАТЬ':'ВЗАИМОДЕЙСТВИЕ';
  hud();renderer.render(scene,camera);
 }
 animate();
