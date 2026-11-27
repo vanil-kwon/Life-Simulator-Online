@@ -7,7 +7,7 @@ export const defaultSave = (name = 'Игрок') => ({
   version: CURRENT_VERSION,
   player: { name, x: 480, y: 420, direction: 'down' },
   economy: { money: 1000 },
-  vehicle: { owned: true, model: 'City Compact', x: 650, y: 420, rotation: 0 },
+  vehicle: { owned: true, model: 'City Compact', x: 650, y: 420, rotation: 0, inUse: false },
   world: { day: 1, lastPlayed: Date.now() },
   settings: { sound: true },
   inside: null,
