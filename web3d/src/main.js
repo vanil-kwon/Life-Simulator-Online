@@ -28,12 +28,14 @@ box(scene,'Road',0,-.015,0,9,.12,120,mats.road);
 box(scene,'Sidewalk',-6,.01,0,3,.18,120,mats.side);box(scene,'Sidewalk',6,.01,0,3,.18,120,mats.side);
 box(scene,'Cross street',0,-.005,0,120,.12,8,mats.road);
 for(let z=-54;z<=54;z+=9){box(scene,'Road marking',0,.052,z, .12,.012,3.8,mats.line);}
+const buildingColliders=[];
 const buildingColors=[0xb8b3a8,0x9daeb0,0xc3b9a7,0x8e9ba3,0xd0c8b7];
 for(let i=0;i<13;i++){
  const z=-54+i*9;
  for(const side of [-1,1]){
   const h=7+(i*7+side*3)%10, w=6.5+(i%3)*.6;
   const x=side*(10+w/2);
+  buildingColliders.push({minX:x-w/2-.48,maxX:x+w/2+.48,minZ:z-3.98,maxZ:z+3.98});
   const facade=mat(buildingColors[(i+(side>0?1:0))%buildingColors.length],.92);
   box(scene,'Apartment building',x,h/2,z,w,h,7,facade);
   box(scene,'Ground floor stone plinth',x,.72,z-side*3.56,w,.85,.16,mat(0x777d7a,.95));
@@ -180,6 +182,21 @@ actionButton.addEventListener('click',()=>{
  toast('Подойди к машине, магазину или месту работы');
 });
 function hud(){for(const [k,v] of Object.entries({health,energy,hunger})){document.getElementById(k).style.width=v+'%';document.getElementById(k+'-t').textContent=Math.round(v);}}
+function canOccupy(x,z,radius){
+ if(x < -58+radius || x > 58-radius || z < -58+radius || z > 58-radius) return false;
+ for(const b of buildingColliders){
+  const px=THREE.MathUtils.clamp(x,b.minX,b.maxX),pz=THREE.MathUtils.clamp(z,b.minZ,b.maxZ);
+  const dx=x-px,dz=z-pz;
+  if(dx*dx+dz*dz<radius*radius) return false;
+ }
+ return true;
+}
+function moveWithCollision(object,dx,dz,radius){
+ const nx=object.position.x+dx,nz=object.position.z+dz;
+ if(canOccupy(nx,nz,radius)){object.position.x=nx;object.position.z=nz;return;}
+ if(canOccupy(nx,object.position.z,radius)) object.position.x=nx;
+ if(canOccupy(object.position.x,nz,radius)) object.position.z=nz;
+}
 const clock=new THREE.Clock();
 let lastFrame=0,lastHud=0;
 function animate(now=0){
@@ -193,12 +210,12 @@ function animate(now=0){
  if(humanModel) humanModel.userData.mixer.update(dt);
  if(moving){
   if(driving){
-   car.position.addScaledVector(dir,dt*8.2);
+   moveWithCollision(car,dir.x*dt*8.2,dir.z*dt*8.2,1.35);
    car.rotation.y=Math.atan2(dir.x,dir.z);
    carWheels.forEach(w=>w.rotation.x-=dt*moveY*5);
    player.position.copy(car.position);
   }else{
-   player.position.addScaledVector(dir,dt*(energy>0?3.5:2));
+   moveWithCollision(player,dir.x*dt*(energy>0?3.5:2),dir.z*dt*(energy>0?3.5:2),.48);
    player.rotation.y=Math.atan2(dir.x,dir.z);
    walking+=dt*9;legs[0].rotation.x=Math.sin(walking)*.55;legs[1].rotation.x=-Math.sin(walking)*.55;
    energy=Math.max(0,energy-dt*.24);
