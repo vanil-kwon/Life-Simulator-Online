@@ -24,6 +24,27 @@
   </div>
   <button class="action" id="action">ВЗАИМОДЕЙСТВИЕ</button>
   <div class="toast" id="toast"></div>
+  <script>
+    // Remove the previous pixel-game PWA worker/cache so it cannot keep serving the old app.
+    (async () => {
+      if (!('serviceWorker' in navigator)) return;
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        const hadOldWorker = registrations.length > 0;
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+        if (hadOldWorker && !sessionStorage.getItem('lifesim-clean-reloaded')) {
+          sessionStorage.setItem('lifesim-clean-reloaded', '1');
+          location.reload();
+        }
+      } catch (error) {
+        console.warn('[Life Simulator] Old offline cache cleanup skipped', error);
+      }
+    })();
+  </script>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
